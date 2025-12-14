@@ -1,18 +1,30 @@
 /**
- * クライアントからの設定保存要求を処理する (RPC)
- * @param {string} jsonConfig - JSON String of settings
- * @return {string} Success message
+ * Server Side Logic for DemoOS
+ * RPC経由で呼び出される関数群
  */
-function saveSettings(jsonConfig) {
-  // ここでバリデーションを実施するのが理想的
-  PropertiesService.getScriptProperties().setProperty('CLOCK_CONFIG', jsonConfig);
-  return 'OK';
+
+const KEY_CONFIG = 'DEMO_OS_CONFIG';
+
+function getInitialData() {
+  const jsonConfig = PropertiesService.getScriptProperties().getProperty(KEY_CONFIG);
+  
+  const objDefault = {
+    clock1: { name: 'Japan (JST)', offset: 9 },
+    clock2: { name: 'UTC', offset: 0 }
+  };
+
+  const objSettings = jsonConfig ? JSON.parse(jsonConfig) : objDefault;
+  const msNow = new Date().getTime();
+
+  return {
+    msServerTime: msNow,
+    objSettings: objSettings
+  };
 }
 
-/**
- * サーバーの現在時刻を取得する（同期チェック用 - RPC）
- * @return {number} Milliseconds timestamp
- */
-function getServerTime() {
-  return new Date().getTime();
+function saveSettings(objConfig) {
+  if (!objConfig) return false;
+  const jsonString = JSON.stringify(objConfig);
+  PropertiesService.getScriptProperties().setProperty(KEY_CONFIG, jsonString);
+  return true;
 }

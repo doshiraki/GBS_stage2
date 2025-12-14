@@ -3,51 +3,120 @@
 <head>
   <base target="_top">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; text-align: center; }
-    .container-clock { display: flex; justify-content: center; gap: 40px; margin-top: 20px; flex-wrap: wrap; }
-    .clock-wrapper { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 300px; }
-    canvas { background-color: #fff; border-radius: 50%; }
-    .digital-display { font-size: 1.5em; font-family: 'Courier New', monospace; margin: 15px 0; font-weight: bold; color: #555; }
-    .country-label { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #2c3e50; }
-    .settings-panel { margin-top: 40px; padding: 20px; background: #fff; display: inline-block; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin: 5px; }
-    button { padding: 8px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background-color: #2980b9; }
+    :root {
+      --bg-color: #2c3e50;
+      --card-bg: #ecf0f1;
+      --text-main: #2c3e50;
+      --accent: #e74c3c;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-color);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+    .container {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .clock-card {
+      background: var(--card-bg);
+      color: var(--text-main);
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+      width: 300px;
+    }
+    canvas {
+      background-color: #fff;
+      border-radius: 50%;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+    .digital-display {
+      font-family: 'Courier New', monospace;
+      font-size: 1.4em;
+      font-weight: bold;
+      margin: 15px 0;
+      color: var(--accent);
+      background: #333;
+      padding: 5px;
+      border-radius: 4px;
+    }
+    .settings-panel {
+      margin-top: 15px;
+      text-align: left;
+      font-size: 0.9em;
+      border-top: 1px solid #bdc3c7;
+      padding-top: 15px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      box-sizing: border-box;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 5px;
+      color: #7f8c8d;
+    }
+    button#elSaveBtn {
+      margin-top: 30px;
+      padding: 12px 40px;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1.1em;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    button#elSaveBtn:hover { opacity: 0.9; transform: translateY(-1px); }
   </style>
 </head>
 <body>
 
-  <h2>GBS Dual World Clock</h2>
-  <div id="divSyncStatus" style="font-size:0.8em; color:#888;">Syncing...</div>
+  <h1>DemoOS Environment</h1>
 
-  <div class="container-clock">
-    <div class="clock-wrapper">
-      <div id="lblCountry1" class="country-label">Loading...</div>
-      <canvas id="cvsClock1" width="200" height="200"></canvas>
-      <div id="divDigital1" class="digital-display">--:--:--</div>
+  <div class="container">
+    <div class="clock-card">
+      <h2 id="elTitle1">Clock 1</h2>
+      <canvas id="elCanvas1" width="250" height="250"></canvas>
+      <div id="elDigital1" class="digital-display">Loading...</div>
+      
+      <div class="settings-panel">
+        <label>Location Name:</label>
+        <input type="text" id="elInputName1" value="Japan">
+        <label>Timezone Offset (UTC hours):</label>
+        <input type="number" id="elInputOffset1" value="9" step="0.5">
+      </div>
     </div>
 
-    <div class="clock-wrapper">
-      <div id="lblCountry2" class="country-label">Loading...</div>
-      <canvas id="cvsClock2" width="200" height="200"></canvas>
-      <div id="divDigital2" class="digital-display">--:--:--</div>
+    <div class="clock-card">
+      <h2 id="elTitle2">Clock 2</h2>
+      <canvas id="elCanvas2" width="250" height="250"></canvas>
+      <div id="elDigital2" class="digital-display">Loading...</div>
+
+      <div class="settings-panel">
+        <label>Location Name:</label>
+        <input type="text" id="elInputName2" value="London">
+        <label>Timezone Offset (UTC hours):</label>
+        <input type="number" id="elInputOffset2" value="0" step="0.5">
+      </div>
     </div>
   </div>
 
-  <div class="settings-panel">
-    <h3>Settings</h3>
-    <div>
-      Clock 1: 
-      <input type="text" id="iptName1" placeholder="Country Name">
-      <input type="number" id="iptOffset1" placeholder="Offset (e.g. 9)" step="0.5">
-    </div>
-    <div>
-      Clock 2: 
-      <input type="text" id="iptName2" placeholder="Country Name">
-      <input type="number" id="iptOffset2" placeholder="Offset (e.g. -5)" step="0.5">
-    </div>
-    <button onclick="saveConfig()">Save Settings</button>
-  </div>
-
+  <button id="elSaveBtn" onclick="saveSettings()">Sync & Save System</button>
 </body>
 </html>

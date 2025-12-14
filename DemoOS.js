@@ -1,14 +1,14 @@
 /**
- * 🕰️ DemoOS Kernel (Analog Clock)
- * ロジック分離モデルの実装サンプル
+ * GBS Stage 2 Kernel: DemoOS
+ * * 責務: アプリケーションの構成定義とAppCoreへの委譲
  */
 class DemoOS {
   constructor(config) {
     this.config = config || {};
     this.CONST = {
       PAGE_NAME: 'index',
-      // ロジックファイルを依存関係として定義
-      DEPENDENCIES: ['lib_analog_clock'] 
+      // ロジックを外部ライブラリとして依存定義
+      DEPENDENCIES: ['lib_DemoCore'] 
     };
   }
 
@@ -16,12 +16,11 @@ class DemoOS {
     const appCore = new LibAppCore.AppCore(this);
 
     if (e.type === 'RPC') {
-      const fileName = e.parameter.args.file;
       return appCore.run(e, globalThis);
     }
 
     return appCore.render(this.CONST.PAGE_NAME, {
-       appTitle: 'GBS World Clock',
+       appTitle: this.config.appTitle,
        dependencies: this.CONST.DEPENDENCIES
     });
   }
@@ -29,4 +28,5 @@ class DemoOS {
   createTemplate(fileName) {
     return HtmlService.createTemplateFromFile(fileName);
   }
+
 }
