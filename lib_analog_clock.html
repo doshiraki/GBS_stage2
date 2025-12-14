@@ -1,109 +1,203 @@
 <script>
-/**
- * 🎨 AnalogClockRenderer Library
- * Canvas操作と三角関数計算をカプセル化したクラス
- */
-class AnalogClockRenderer {
-  constructor(canvas, options = {}) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.radius = canvas.height / 2;
-    // 原点をCanvasの中心に移動
-    this.ctx.translate(this.radius, this.radius);
-    this.radius = this.radius * 0.90;
+  // ==========================================
+  // 1. Global State (Application Hungarian)
+  // ==========================================
+  let objConfig = {};       // Parsed Configuration
+  let msServerOffset = 0;   // Client vs Server Time Difference
+  let isRunning = false;    // Animation Loop State
+
+  // ==========================================
+  // 2. Initialization
+  // ==========================================
+  (async function boot() {
+    console.log("Booting GBS Clock...");
+
+    // -------------------------------------------------------
+    // [FIX] サーバー変数の注入 (Data Injection)
+    // クライアントサイドの変数に直接展開します。
+    // -------------------------------------------------------
     
-    this.options = {
-      faceColor: options.faceColor || '#fff',
-      handColor: options.handColor || '#333',
-      secondHandColor: options.secondHandColor || 'red'
-    };
-  }
+    // 1. サーバー時刻 (数値) を注入
+    // サーバー側で new Date().getTime() した値がここに埋め込まれます
+    const msNowServer = <?= msServerTime ?>;
 
-  // メイン描画メソッド
-  draw(date) {
-    this.clear();
-    this.drawFace();
-    this.drawTime(date);
-  }
+    // 2. 設定JSON (文字列) を注入
+    // サーバー側の JSON文字列 '{"clocks":...}' がここに展開され、
+    // 自動的に JavaScript オブジェクトとして認識されます。
+    // そのため、JSON.parse() は不要になります。
+    objConfig = JSON.parse(<?= JSON.stringify(jsonSettings) ?>);
 
-  clear() {
-    // 座標系をリセットしてクリアし、再度中心へ移動
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.translate(this.canvas.width/2, this.canvas.height/2);
-  }
+    // -------------------------------------------------------
+    // 以降、ロジック
+    // -------------------------------------------------------
 
-  drawFace() {
-    const ctx = this.ctx;
-    const radius = this.radius;
+    // 時差計算 (Server - Client)
+    const msNowClient = new Date().getTime();
+    msServerOffset = msNowServer - msNowClient;
+    
+    const elStatus = document.getElementById('divSyncStatus');
+    if(elStatus) elStatus.innerText = `Server Offset: ${msServerOffset}ms`;
 
-    // 外枠
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = this.options.faceColor;
-    ctx.lineWidth = radius * 0.05;
-    ctx.stroke();
+    // 設定が正しく注入されたか確認 (デバッグ用)
+    console.log("Loaded Config:", objConfig);
 
-    // 目盛り
-    ctx.fillStyle = this.options.faceColor;
-    for(let num = 1; num <= 12; num++){
-      const ang = num * Math.PI / 6;
-      ctx.rotate(ang);
-      ctx.translate(0, -radius * 0.85);
-      
-      // 12, 3, 6, 9 は少し大きく
-      if (num % 3 === 0) {
-        ctx.fillRect(-2, -10, 4, 15);
-      } else {
-        ctx.fillRect(-1, -5, 2, 10);
-      }
-      
-      ctx.translate(0, radius * 0.85);
-      ctx.rotate(-ang);
+    // UI初期化
+    updateInputs();
+
+    // アニメーション開始
+    isRunning = true;
+    requestAnimationFrame(animationLoop);
+  })();
+
+  function updateInputs() {
+    // DOM要素が存在する場合のみ値をセット
+    const elName1 = document.getElementById('iptName1');
+    if(elName1 && objConfig.clocks) {
+        document.getElementById('iptName1').value = objConfig.clocks[0].country;
+        document.getElementById('iptOffset1').value = objConfig.clocks[0].offset;
+        document.getElementById('iptName2').value = objConfig.clocks[1].country;
+        document.getElementById('iptOffset2').value = objConfig.clocks[1].offset;
     }
   }
 
-  drawTime(date) {
-    const ctx = this.ctx;
-    const radius = this.radius;
-    let hour = date.getHours();
-    let minute = date.getMinutes();
-    let second = date.getSeconds();
-    let ms = date.getMilliseconds();
+  // ==========================================
+  // 3. Core Logic
+  // ==========================================
+  async function saveConfig() {
+    const btnSave = document.querySelector('button');
+    if(btnSave) {
+        btnSave.disabled = true;
+        btnSave.innerText = 'Saving...';
+    }
 
-    // 秒針（滑らかに動くようにミリ秒も考慮）
-    second = second + (ms / 1000);
-    
-    // 時針
-    hour = hour % 12;
-    hour = (hour * Math.PI / 6) + (minute * Math.PI / (6 * 60)) + (second * Math.PI / (360 * 60));
-    this.drawHand(ctx, hour, radius * 0.5, radius * 0.07, this.options.handColor);
+    const newConfig = {
+      clocks: [
+        {
+          country: document.getElementById('iptName1').value,
+          offset: parseFloat(document.getElementById('iptOffset1').value)
+        },
+        {
+          country: document.getElementById('iptName2').value,
+          offset: parseFloat(document.getElementById('iptOffset2').value)
+        }
+      ]
+    };
 
-    // 分針
-    minute = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
-    this.drawHand(ctx, minute, radius * 0.8, radius * 0.05, this.options.handColor);
-
-    // 秒針
-    const secondAngle = (second * Math.PI / 30);
-    this.drawHand(ctx, secondAngle, radius * 0.9, radius * 0.02, this.options.secondHandColor);
-    
-    // 中心点
-    ctx.beginPath();
-    ctx.arc(0, 0, radius * 0.05, 0, 2 * Math.PI);
-    ctx.fillStyle = this.options.secondHandColor;
-    ctx.fill();
+    try {
+      // RPC Call (GBS Promise Wrapper)
+      await google.script.run.saveSettings(JSON.stringify(newConfig));
+      
+      objConfig = newConfig;
+      alert('Settings Saved!');
+    } catch (err) {
+      alert('Error saving: ' + err);
+    } finally {
+      if(btnSave) {
+        btnSave.disabled = false;
+        btnSave.innerText = 'Save Settings';
+      }
+    }
   }
 
-  drawHand(ctx, pos, length, width, color) {
+  function animationLoop() {
+    if (!isRunning) return;
+
+    const msCurrentClient = new Date().getTime();
+    const msCurrentServer = msCurrentClient + msServerOffset;
+
+    drawClock(0, msCurrentServer);
+    drawClock(1, msCurrentServer);
+
+    requestAnimationFrame(animationLoop);
+  }
+
+  function drawClock(idxClock, msBaseTime) {
+    if (!objConfig.clocks || !objConfig.clocks[idxClock]) return;
+    const setting = objConfig.clocks[idxClock];
+
+    const dateBase = new Date(msBaseTime);
+    const msUtc = dateBase.getTime() + (dateBase.getTimezoneOffset() * 60000); 
+    const msTarget = msUtc + (setting.offset * 3600000);
+    const dateTarget = new Date(msTarget);
+
+    const elLabel = document.getElementById(`lblCountry${idxClock + 1}`);
+    const elDigital = document.getElementById(`divDigital${idxClock + 1}`);
+    if(elLabel) elLabel.innerText = setting.country;
+    if(elDigital) elDigital.innerText = formatDate(dateTarget);
+
+    const elCanvas = document.getElementById(`cvsClock${idxClock + 1}`);
+    if(!elCanvas) return;
+    
+    const ctx = elCanvas.getContext('2d');
+    const radius = elCanvas.height / 2;
+
+    ctx.clearRect(0, 0, elCanvas.width, elCanvas.height);
+    ctx.save();
+    ctx.translate(radius, radius);
+    const radiusFace = radius * 0.90;
+
+    // Draw Face
+    ctx.beginPath();
+    ctx.arc(0, 0, radiusFace, 0, 2 * Math.PI);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = radius * 0.05;
+    ctx.stroke();
+
+    // Draw Numbers
+    ctx.font = radius * 0.15 + "px arial";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#333";
+    for(let num = 1; num <= 12; num++){
+      const ang = num * Math.PI / 6;
+      ctx.rotate(ang);
+      ctx.translate(0, -radiusFace * 0.85);
+      ctx.rotate(-ang);
+      ctx.fillText(num.toString(), 0, 0);
+      ctx.rotate(ang);
+      ctx.translate(0, radiusFace * 0.85);
+      ctx.rotate(-ang);
+    }
+
+    // Hands
+    const h = dateTarget.getHours();
+    const m = dateTarget.getMinutes();
+    const s = dateTarget.getSeconds();
+
+    const angHour = (h % 12 * Math.PI / 6) + (m * Math.PI / (6 * 60)) + (s * Math.PI / (360 * 60));
+    const angMinute = (m * Math.PI / 30) + (s * Math.PI / (30 * 60));
+    const angSecond = (s * Math.PI / 30);
+
+    drawHand(ctx, angHour, radiusFace * 0.5, radius * 0.07, '#333');
+    drawHand(ctx, angMinute, radiusFace * 0.8, radius * 0.07, '#333');
+    drawHand(ctx, angSecond, radiusFace * 0.9, radius * 0.02, '#e74c3c');
+
+    // Center
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.1, 0, 2 * Math.PI);
+    ctx.fillStyle = '#333';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawHand(ctx, pos, length, width, color) {
     ctx.beginPath();
     ctx.lineWidth = width;
     ctx.lineCap = "round";
     ctx.strokeStyle = color;
-    ctx.moveTo(0, 0);
+    ctx.moveTo(0,0);
     ctx.rotate(pos);
     ctx.lineTo(0, -length);
     ctx.stroke();
     ctx.rotate(-pos);
   }
-}
+
+  function formatDate(date) {
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ` +
+           `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
 </script>

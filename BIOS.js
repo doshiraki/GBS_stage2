@@ -2,8 +2,8 @@
 // ⚙️ BIOS Configuration
 // ==========================================
 const GBS_CONFIG = {
-  defaultPartition: 'PRD',
-  devAppTitle: 'GBS Clock TEST',
+  defaultPartition: 'PRD',        // Stage 1 Partition (通常はPRD)
+  devAppTitle: 'Dual World Clock' // アプリケーションタイトル
 };
 
 // ==========================================
