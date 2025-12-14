@@ -2,8 +2,12 @@
  * GBS Stage 2 Kernel: DemoOS
  * * 責務: アプリケーションの構成定義とAppCoreへの委譲
  */
+var BIOS_exports = {};
 class DemoOS {
   constructor(config) {
+    if (config.exports) {
+      BIOS_exports = config.exports;
+    }
     this.config = config || {};
     this.CONST = {
       VERSION: 'v1.0.2',

@@ -6,7 +6,7 @@
 const KEY_CONFIG = 'DEMO_OS_CONFIG';
 
 function getInitialData() {
-  const jsonConfig = PropertiesService.getScriptProperties().getProperty(KEY_CONFIG);
+  const jsonConfig = BIOS_exports.ScriptProperties.getProperty(KEY_CONFIG);
   
   const objDefault = {
     clock1: { name: 'Japan (JST)', offset: 9 },
@@ -25,6 +25,6 @@ function getInitialData() {
 function saveSettings(objConfig) {
   if (!objConfig) return false;
   const jsonString = JSON.stringify(objConfig);
-  PropertiesService.getScriptProperties().setProperty(KEY_CONFIG, jsonString);
+  BIOS_exports.ScriptProperties.setProperty(KEY_CONFIG, jsonString);
   return true;
 }
