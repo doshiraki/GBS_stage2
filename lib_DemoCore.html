@@ -30,10 +30,7 @@
     const msRequestStart = Date.now();
     
     // Call Server Logic
-    const objResponse = await new Promise((resolve, reject)=> google.script.run
-                  .withSuccessHandler(resolve)  // 成功したら await 側に値を返す
-                  .withFailureHandler(reject)   // 失敗したら catch させる
-                  .getInitialData());
+    const objResponse = await google.script.run.sync().getInitialData();
     
     const msRequestEnd = Date.now();
     const msLatency = (msRequestEnd - msRequestStart) / 2;
@@ -74,7 +71,7 @@
     objConfig.clock2.name = document.getElementById('elInputName2').value;
     objConfig.clock2.offset = parseFloat(document.getElementById('elInputOffset2').value);
 
-    await await new Promise((resolve, reject)=> google.script.run
+    await new Promise((resolve, reject)=> google.script.run
                   .withSuccessHandler(resolve)  // 成功したら await 側に値を返す
                   .withFailureHandler(reject)   // 失敗したら catch させる
                   .saveSettings(objConfig));
