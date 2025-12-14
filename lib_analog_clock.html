@@ -1,0 +1,109 @@
+<script>
+/**
+ * 🎨 AnalogClockRenderer Library
+ * Canvas操作と三角関数計算をカプセル化したクラス
+ */
+class AnalogClockRenderer {
+  constructor(canvas, options = {}) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.radius = canvas.height / 2;
+    // 原点をCanvasの中心に移動
+    this.ctx.translate(this.radius, this.radius);
+    this.radius = this.radius * 0.90;
+    
+    this.options = {
+      faceColor: options.faceColor || '#fff',
+      handColor: options.handColor || '#333',
+      secondHandColor: options.secondHandColor || 'red'
+    };
+  }
+
+  // メイン描画メソッド
+  draw(date) {
+    this.clear();
+    this.drawFace();
+    this.drawTime(date);
+  }
+
+  clear() {
+    // 座標系をリセットしてクリアし、再度中心へ移動
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.translate(this.canvas.width/2, this.canvas.height/2);
+  }
+
+  drawFace() {
+    const ctx = this.ctx;
+    const radius = this.radius;
+
+    // 外枠
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = this.options.faceColor;
+    ctx.lineWidth = radius * 0.05;
+    ctx.stroke();
+
+    // 目盛り
+    ctx.fillStyle = this.options.faceColor;
+    for(let num = 1; num <= 12; num++){
+      const ang = num * Math.PI / 6;
+      ctx.rotate(ang);
+      ctx.translate(0, -radius * 0.85);
+      
+      // 12, 3, 6, 9 は少し大きく
+      if (num % 3 === 0) {
+        ctx.fillRect(-2, -10, 4, 15);
+      } else {
+        ctx.fillRect(-1, -5, 2, 10);
+      }
+      
+      ctx.translate(0, radius * 0.85);
+      ctx.rotate(-ang);
+    }
+  }
+
+  drawTime(date) {
+    const ctx = this.ctx;
+    const radius = this.radius;
+    let hour = date.getHours();
+    let minute = date.getMinutes();
+    let second = date.getSeconds();
+    let ms = date.getMilliseconds();
+
+    // 秒針（滑らかに動くようにミリ秒も考慮）
+    second = second + (ms / 1000);
+    
+    // 時針
+    hour = hour % 12;
+    hour = (hour * Math.PI / 6) + (minute * Math.PI / (6 * 60)) + (second * Math.PI / (360 * 60));
+    this.drawHand(ctx, hour, radius * 0.5, radius * 0.07, this.options.handColor);
+
+    // 分針
+    minute = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
+    this.drawHand(ctx, minute, radius * 0.8, radius * 0.05, this.options.handColor);
+
+    // 秒針
+    const secondAngle = (second * Math.PI / 30);
+    this.drawHand(ctx, secondAngle, radius * 0.9, radius * 0.02, this.options.secondHandColor);
+    
+    // 中心点
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.05, 0, 2 * Math.PI);
+    ctx.fillStyle = this.options.secondHandColor;
+    ctx.fill();
+  }
+
+  drawHand(ctx, pos, length, width, color) {
+    ctx.beginPath();
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = color;
+    ctx.moveTo(0, 0);
+    ctx.rotate(pos);
+    ctx.lineTo(0, -length);
+    ctx.stroke();
+    ctx.rotate(-pos);
+  }
+}
+</script>

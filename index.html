@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    h2 { font-weight: 300; letter-spacing: 2px; margin-bottom: 20px; }
+    canvas {
+      background: radial-gradient(circle, #333 0%, #111 100%);
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.1);
+    }
+    .controls { margin-top: 20px; text-align: center; }
+    button {
+      padding: 8px 16px;
+      background: #4285F4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    button:hover { background: #3367D6; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    #status { margin-top: 10px; font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h2>GBS ANALOG</h2>
+    <canvas id="clockCanvas" width="300" height="300"></canvas>
+    
+    <div class="controls">
+      <button onclick="syncWithServer()">📡 Sync Time</button>
+      <div id="status">Diff: 0ms</div>
+    </div>
+  </div>
+
+  <script>
+    let clockRenderer;
+    let timeOffset = 0;
+
+    function init() {
+                  console.log("init");
+
+      const canvas = document.getElementById('clockCanvas');
+      
+      // ライブラリ初期化
+      if (typeof AnalogClockRenderer === 'undefined') {
+        alert('Error: Library not loaded.');
+        return;
+      }
+
+      clockRenderer = new AnalogClockRenderer(canvas, {
+        faceColor: '#ffffff',
+        handColor: '#4285F4',
+        secondHandColor: '#ff5252'
+      });
+
+      // サーバー初期値の反映
+      try {
+        const serverTime = <?= serverTimestamp ?>;
+        if (serverTime) {
+          timeOffset = serverTime - new Date().getTime();
+          updateStatus();
+        }
+      } catch(e) { console.error('Init inject error', e); }
+
+      tick();
+    }
+
+    function tick() {
+            console.log("tick");
+      const now = new Date(new Date().getTime() + timeOffset);
+      if (clockRenderer) clockRenderer.draw(now);
+      requestAnimationFrame(tick);
+    }
+
+    async function syncWithServer() {
+      const btn = document.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = 'Syncing...';
+      console.log("sync");
+      try {
+        // GBS RPC Call
+        const serverTs = await google.script.run.getServerTimestamp();
+        
+        console.log("Server TS:", serverTs); // デバッグ用ログ
+
+        // 🛡️ ガード処理: 数値以外が返ってきたら更新しない
+        if (!serverTs || typeof serverTs !== 'number' || isNaN(serverTs)) {
+          throw new Error('Invalid timestamp received from server');
+        }
+        
+        const clientTs = new Date().getTime();
+        timeOffset = serverTs - clientTs;
+        updateStatus();
+        
+      } catch (e) {
+        console.error(e);
+        document.getElementById('status').textContent = 'Sync Failed';
+        // 時計を止めないためにアラートは出さないでおく
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📡 Sync Time';
+      }
+    }
+
+    function updateStatus() {
+      const sign = timeOffset >= 0 ? '+' : '';
+      document.getElementById('status').textContent = `Server Offset: ${sign}${timeOffset}ms`;
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
